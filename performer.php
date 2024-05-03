@@ -33,9 +33,6 @@ if($select_type_of_fault) {
     // Если произошла ошибка при выполнении запроса, выводим сообщение об ошибке
     echo "Ошибка при выполнении запроса: " . mysqli_error($connect);
 }
-
-// Выводим информацию о исполнителе и типах неисправностей
-var_dump($type_of_fault);
 ?>
 
 <!DOCTYPE html>
@@ -59,6 +56,12 @@ var_dump($type_of_fault);
 
         th {
             background-color: #f2f2f2;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 300px;
         }
     </style>
 </head>
@@ -91,5 +94,79 @@ var_dump($type_of_fault);
             </tr>
         <?php endforeach; ?>
     </table>
+
+    <h2>Оставить заявку на ремонт</h2>
+    <form action="./vendor/create_request.php" method="post">
+        <input type="hidden" name="id_performer" value="<?= $performer_id ?>">
+        <input type="hidden" name="id_client" value="<?= $_COOKIE['id_user']; ?>">
+        <input type="text" name="name_phone" placeholder="Название телефона" required>
+        <input type="text" name="model_phone" placeholder="Название модели" required>
+        <input type="text" name="serial_number" placeholder="Серийный номер" required>
+
+        <div class="services">
+            <h3>Типы неисправностей:</h3>
+            <ul>
+                <?php foreach ($type_of_fault as $fault): ?>
+                    <li>
+                        <input type="checkbox" name="fault_type[]" id="fault_type<?= $fault['id'] ?>" value="<?= $fault['id'] ?>">
+                        <label for="fault_type<?= $fault['id'] ?>"><?= $fault['name_type'] ?></label>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+
+        <?php foreach ($type_of_fault as $fault): ?>
+            <div id="additional_services_<?= $fault['id'] ?>" class="additional_services" style="display: none;">
+                <h3>Дополнительные услуги для <?= $fault['name_type'] ?>:</h3>
+                <ul>
+                    <?php 
+                    // Преобразовываем строку с JSON в ассоциативный массив
+                    $additional_services = json_decode($fault['additional_services'], true);
+                    ?>
+                    <?php foreach ($additional_services['additional_services'] as $service): ?>
+                        <li>
+                            <input type="radio" name="additional_service_<?= $fault['id'] ?>" id="additional_service_<?= $fault['id'] ?>_<?= $service['id'] ?>" value="<?= $service['id'] ?>">
+                            <label for="additional_service_<?= $fault['id'] ?>_<?= $service['id'] ?>"><?= $service['name'] ?> - <?= $service['price'] ?> руб.</label>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endforeach; ?>
+
+        <input type="submit" value="Оставить заявку">
+    </form>
+
+    <script>
+        // Получаем все чекбоксы типов неисправностей
+        var faultCheckboxes = document.querySelectorAll('input[type="checkbox"][name="fault_type[]"]');
+
+        // Добавляем обработчик событий для каждого чекбокса
+        faultCheckboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                // Получаем id текущего выбранного типа неисправности
+                var faultTypeId = this.value;
+                
+                // Если чекбокс был выбран
+                if (this.checked) {
+                    // Показываем блок с дополнительными услугами для данного типа неисправности
+                    var additionalServicesBlock = document.getElementById('additional_services_' + faultTypeId);
+                    if (additionalServicesBlock) {
+                        additionalServicesBlock.style.display = 'block';
+                    }
+                } else {
+                    // Если чекбокс был снят, скрываем блок с дополнительными услугами для данного типа неисправности
+                    var additionalServicesBlock = document.getElementById('additional_services_' + faultTypeId);
+                    if (additionalServicesBlock) {
+                        additionalServicesBlock.style.display = 'none';
+                        
+                        // Очищаем все радиокнопки в блоке с дополнительными услугами
+                        additionalServicesBlock.querySelectorAll('input[type="radio"]').forEach(function(radio) {
+                            radio.checked = false;
+                        });
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>
