@@ -102,36 +102,44 @@ $fault_types = mysqli_fetch_all($result_fault_types, MYSQLI_ASSOC);
                     echo implode(', ', $fault_type_names); // Выводим имена типов неисправностей, разделенные запятыми
                     echo '</td>';
 
-                    // Выводим дополнительные услуги
                     echo '<td>';
-                    $additional_service_ids = explode(',', $request[5]); // Получаем id дополнительных услуг
+                    $total_additional_services_price = 0;
 
-                    // Массив для хранения уникальных имен дополнительных услуг
-                    $unique_additional_service_names = [];
-
-                    // Проходим по всем типам неисправностей, которые есть в текущей заявке
+                    // Проходим по всем типам неисправностей в текущей заявке
                     $fault_type_ids = explode(',', $request[4]); // Получаем id типов неисправностей в текущей заявке
+                    $fault_type_service_ids = explode(',', $request[5]); // Получаем id дополнительных услуг в текущей заявке
+
+                    // Массив для хранения данных о дополнительных услугах для каждого типа неисправности
+                    $fault_type_additional_services = [];
+
                     foreach ($fault_types as $type) {
                         if (in_array($type['id'], $fault_type_ids)) {
-                            // Если текущий тип неисправности содержится в текущей заявке, получаем данные о дополнительных услугах для него
+                            // Получаем данные о дополнительных услугах для текущего типа неисправности
                             $additional_services_data = json_decode($type['additional_services'], true)['additional_services'];
 
-                            // Проходим по каждой дополнительной услуге и проверяем, есть ли ее id в массиве $additional_service_ids
+                            // Проходим по каждой дополнительной услуге
                             foreach ($additional_services_data as $service) {
-                                if (in_array($service['id'], $additional_service_ids)) {
-                                    // Если id услуги есть в массиве и она еще не была добавлена в уникальный массив, добавляем ее имя в массив $unique_additional_service_names
-                                    $additional_service_name = htmlspecialchars($service['name']);
-                                    if (!in_array($additional_service_name, $unique_additional_service_names)) {
-                                        $unique_additional_service_names[] = $additional_service_name;
-                                    }
+                                // Проверяем, есть ли данная дополнительная услуга в текущей заявке
+                                if (in_array($service['id'], $fault_type_service_ids)) {
+                                    // Добавляем данные о дополнительной услуге в массив
+                                    $fault_type_additional_services[$type['name_type']][] = $service;
+                                    // Увеличиваем общую сумму дополнительных услуг
+                                    $total_additional_services_price += $service['price'];
                                 }
                             }
                         }
                     }
 
-                    // Выводим уникальные имена дополнительных услуг, разделенные запятыми
-                    echo implode(', ', $unique_additional_service_names);
+                    // Выводим данные о дополнительных услугах
+                    foreach ($fault_type_additional_services as $fault_type_name => $additional_services) {
+                        echo htmlspecialchars($fault_type_name) . ': ';
+                        foreach ($additional_services as $service) {
+                            echo htmlspecialchars($service['name']) . ' (' . $service['price'] . ' руб.), ';
+                        }
+                    }
+                    echo '<br>Сумма ремонта: ' . $total_additional_services_price . ' руб.';
                     echo '</td>';
+
 
                     echo '</tr>';
                 }
