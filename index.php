@@ -11,6 +11,17 @@ require_once("./db/db.php");
 $select_types_of_fault = mysqli_query($connect, "SELECT * FROM `type_of_fault`");
 $select_types_of_fault = mysqli_fetch_all($select_types_of_fault);
 
+$id_user = $_COOKIE['id_user'];
+$select_requests = mysqli_query($connect, "SELECT `id`, `name_phone`, `model_phone`, `serial_number`, `fault_type`, `additional_service` FROM `requests` WHERE `id_client`='$id_user'");
+$select_requests = mysqli_fetch_all($select_requests);
+
+// SQL-запрос для выбора типов неисправностей по их id из таблицы type_of_fault
+$fault_types_ids = array_column($select_requests, 4); // Получаем массив id типов неисправностей
+$fault_types_ids_str = implode(',', array_unique(explode(',', implode(',', $fault_types_ids)))); // Преобразуем массив в строку уникальных id типов неисправностей
+$sql_fault_types = "SELECT * FROM `type_of_fault` WHERE `id` IN ($fault_types_ids_str)";
+$result_fault_types = mysqli_query($connect, $sql_fault_types);
+$fault_types = mysqli_fetch_all($result_fault_types, MYSQLI_ASSOC);
+
 ?>
 
 <!DOCTYPE html>
@@ -21,12 +32,25 @@ $select_types_of_fault = mysqli_fetch_all($select_types_of_fault);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Главная</title>
     <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
         form {
             display: flex;
             flex-direction: column;
             gap: 10px;
             width: 300px;
         }
+        
     </style>
 </head>
 <body>
@@ -45,6 +69,76 @@ $select_types_of_fault = mysqli_fetch_all($select_types_of_fault);
         </div>
         <br>
         <div id="performers_list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID заявки</th>
+                    <th>Название телефона</th>
+                    <th>Модель телефона</th>
+                    <th>Серийный номер</th>
+                    <th>Типы неисправностей</th>
+                    <th>Доп услуги</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                foreach ($select_requests as $request) {
+                    echo '<tr>';
+                    echo '<td>' . htmlspecialchars($request[0]) . '</td>'; // ID заявки
+                    echo '<td>' . htmlspecialchars($request[1]) . '</td>'; // Название телефона
+                    echo '<td>' . htmlspecialchars($request[2]) . '</td>'; // Модель телефона
+                    echo '<td>' . htmlspecialchars($request[3]) . '</td>'; // Серийный номер
+
+                    // Выводим типы неисправностей
+                    echo '<td>';
+                    $fault_type_ids = explode(',', $request[4]); // Получаем id типов неисправностей
+                    $fault_type_names = []; // Массив для хранения имен типов неисправностей
+                    foreach ($fault_types as $type) {
+                        if (in_array($type['id'], $fault_type_ids)) {
+                            $fault_type_names[] = htmlspecialchars($type['name_type']); // Добавляем имя типа неисправности в массив
+                        }
+                    }
+                    echo implode(', ', $fault_type_names); // Выводим имена типов неисправностей, разделенные запятыми
+                    echo '</td>';
+
+                    // Выводим дополнительные услуги
+                    echo '<td>';
+                    $additional_service_ids = explode(',', $request[5]); // Получаем id дополнительных услуг
+
+                    // Массив для хранения уникальных имен дополнительных услуг
+                    $unique_additional_service_names = [];
+
+                    // Проходим по всем типам неисправностей, которые есть в текущей заявке
+                    $fault_type_ids = explode(',', $request[4]); // Получаем id типов неисправностей в текущей заявке
+                    foreach ($fault_types as $type) {
+                        if (in_array($type['id'], $fault_type_ids)) {
+                            // Если текущий тип неисправности содержится в текущей заявке, получаем данные о дополнительных услугах для него
+                            $additional_services_data = json_decode($type['additional_services'], true)['additional_services'];
+
+                            // Проходим по каждой дополнительной услуге и проверяем, есть ли ее id в массиве $additional_service_ids
+                            foreach ($additional_services_data as $service) {
+                                if (in_array($service['id'], $additional_service_ids)) {
+                                    // Если id услуги есть в массиве и она еще не была добавлена в уникальный массив, добавляем ее имя в массив $unique_additional_service_names
+                                    $additional_service_name = htmlspecialchars($service['name']);
+                                    if (!in_array($additional_service_name, $unique_additional_service_names)) {
+                                        $unique_additional_service_names[] = $additional_service_name;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Выводим уникальные имена дополнительных услуг, разделенные запятыми
+                    echo implode(', ', $unique_additional_service_names);
+                    echo '</td>';
+
+                    echo '</tr>';
+                }
+                ?>
+            </tbody>
+        </table>
+
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script>
