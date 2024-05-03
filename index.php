@@ -44,9 +44,7 @@ $select_types_of_fault = mysqli_fetch_all($select_types_of_fault);
             <button id="filter_button">Фильтровать</button>
         </div>
         <br>
-        <div id="performers_list" style="display: flex; flex-direction: column; gap: 10px;">
-
-        </div>
+        <div id="performers_list" style="display: flex; flex-direction: column; gap: 10px;"></div>
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script>
@@ -71,7 +69,7 @@ $select_types_of_fault = mysqli_fetch_all($select_types_of_fault);
 
                                 // Перебираем массив исполнителей и добавляем их в HTML
                                 for (var i = 0; i < performers.length; i++) {
-                                    html += '<a href="#!">' + performers[i].name_performer + '</a><br>';
+                                    html += '<a href="./performer.php?id=' + performers[i].id + '">' + performers[i].name_performer + '</a><br>';
                                 }
                             } else {
                                 // Если нет результатов поиска, выводим сообщение об этом
